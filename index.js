@@ -95,7 +95,7 @@ function _getModulesForAsset(modulesDict, chunks, asset, isNew) {
             if (!modulesDict[moduleName]) {
                 modulesDict[moduleName] = {
                     name: moduleName,
-                    fullName: module.name,
+                    identifier: module.identifier,
                     oldSize: 0,
                     newSize: 0
                 }
@@ -157,11 +157,25 @@ function _printReport(noChange, increased, decreased, onlyOld, onlyNew) {
         let sum = 0;
         modules.forEach((module) => {
             let moduleDelta = module.newSize - module.oldSize;
-            let moduleName = _pad(module.name.substr(0, module.name.lastIndexOf('_')));
+            let moduleName = module.name.substr(0, module.name.lastIndexOf('_'));
+            let paddedName = _pad(moduleName);
             if (moduleDelta > 0) {
-                console.log(error(`        ${moduleName}\t${module.newSize}\t${module.oldSize}\t${moduleDelta}`));
-            } else if (moduleDelta < 0) {
-                console.log(success(`        ${moduleName}\t${module.newSize}\t${module.oldSize}\t${moduleDelta}`));
+                console.log(error(`        ${paddedName}\t${module.newSize}\t${module.oldSize}\t${moduleDelta}`));
+            }
+            if (moduleDelta < 0) {
+                console.log(success(`        ${paddedName}\t${module.newSize}\t${module.oldSize}\t${moduleDelta}`));
+            }
+
+            if (moduleDelta !== 0) {
+                // parse identifier and print individual file names for composed modules
+                if (module.identifier.indexOf(' ') !== -1 && moduleName.endsWith(' modules')) {
+                    let files = module.identifier.split(' ');
+                    files.forEach((file) => {
+                        let filePath = file.substr(file.lastIndexOf('!') + 1);
+                        let fileName = filePath.substr(filePath.lastIndexOf('\\') + 1);
+                        console.log(`         - ${fileName}`);
+                    })
+                }
             }
             sum += moduleDelta;
         });
