@@ -1,0 +1,18 @@
+{
+  "name": "webpack-diff",
+  "version": "1.0.0",
+  "description": "tool to diff webpack stats files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "webpack-diff": "index.js"
+  },
+  "dependencies": {
+    "chalk": "^1.1.3",
+    "commander": "^2.9.0"
+  },
+  "author": "aditima",
+  "license": "ISC"
+}
