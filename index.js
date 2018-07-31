@@ -7,13 +7,16 @@ const path = require('path');
 
 var oldPath;
 var newPath;
+var cutoffDelta;
 
 function run() {
     program
         .arguments('<baseline> <current>')
-        .action(function(baseline, current) {
+        .option('-c, --cutoff <cutoff>', 'absolute cutoff delta to print report')
+        .action(function(baseline, current, cutoff) {
             oldPath = path.resolve(process.cwd(), baseline);
             newPath = path.resolve(process.cwd(), current);
+            cutoffDelta = program.cutoff || 0;
 
             _compare();
 
@@ -157,24 +160,26 @@ function _printReport(noChange, increased, decreased, onlyOld, onlyNew) {
         let sum = 0;
         modules.forEach((module) => {
             let moduleDelta = module.newSize - module.oldSize;
-            let moduleName = module.name.substr(0, module.name.lastIndexOf('_'));
-            let paddedName = _pad(moduleName);
-            if (moduleDelta > 0) {
-                console.log(error(`        ${paddedName}\t${module.newSize}\t${module.oldSize}\t${moduleDelta}`));
-            }
-            if (moduleDelta < 0) {
-                console.log(success(`        ${paddedName}\t${module.newSize}\t${module.oldSize}\t${moduleDelta}`));
-            }
+            if (Math.abs(moduleDelta) >= cutoffDelta) {
+                let moduleName = module.name.substr(0, module.name.lastIndexOf('_'));
+                let paddedName = _pad(moduleName);
+                if (moduleDelta > 0) {
+                    console.log(error(`        ${paddedName}\t${module.newSize}\t${module.oldSize}\t${moduleDelta}`));
+                }
+                if (moduleDelta < 0) {
+                    console.log(success(`        ${paddedName}\t${module.newSize}\t${module.oldSize}\t${moduleDelta}`));
+                }
 
-            if (moduleDelta !== 0) {
-                // parse identifier and print individual file names for composed modules
-                if (module.identifier.indexOf(' ') !== -1 && moduleName.endsWith(' modules')) {
-                    let files = module.identifier.split(' ');
-                    files.forEach((file) => {
-                        let filePath = file.substr(file.lastIndexOf('!') + 1);
-                        let fileName = filePath.substr(filePath.lastIndexOf('\\') + 1);
-                        console.log(`         - ${fileName}`);
-                    })
+                if (moduleDelta !== 0) {
+                    // parse identifier and print individual file names for composed modules
+                    if (module.identifier.indexOf(' ') !== -1 && moduleName.endsWith(' modules')) {
+                        let files = module.identifier.split(' ');
+                        files.forEach((file) => {
+                            let filePath = file.substr(file.lastIndexOf('!') + 1);
+                            let fileName = filePath.substr(filePath.lastIndexOf('\\') + 1);
+                            console.log(`         - ${fileName}`);
+                        })
+                    }
                 }
             }
             sum += moduleDelta;
@@ -184,14 +189,19 @@ function _printReport(noChange, increased, decreased, onlyOld, onlyNew) {
     });
 
     console.log(chalk.yellow(`* UNCHANGED: ${noChange.length}`));
-    noChange.forEach((asset) => {
-        console.log(`    ${asset.name}`);
-    });
+    if (cutoffDelta === 0) {
+        noChange.forEach((asset) => {
+            console.log(`    ${asset.name}`);
+        });
+    }
 
     console.log(chalk.green(`* DECREASED: ${decreased.length}`));
     decreased.sort((a, b) => { return ((b.newSize - b.oldSize) - (a.newSize - a.oldSize)) });
     decreased.forEach((asset) => {
-        console.log(`    ${asset.name} :  ${asset.newSize - asset.oldSize}`);
+        let delta = asset.newSize - asset.oldSize;
+        if (Math.abs(delta) >= cutoffDelta) {
+            console.log(`    ${asset.name} :  ${delta}`);
+        }
     });
 
     console.log(chalk.green(`* ONLY IN OLD: ${onlyOld.length}`));
