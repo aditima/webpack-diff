@@ -1,0 +1,11 @@
+To run
+------
+node utility.js
+
+Input
+-----
+webpack file generated upon building OUFR, placed in local directory as test-bundles-stats.json
+
+Output
+------
+Generated in a file called dependencygraph.json
